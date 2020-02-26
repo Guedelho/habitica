@@ -16,9 +16,11 @@ const baseRequest = request.defaults({
         'Content-Type': 'application/json',
     },
     callback: (error, response, body) => {
-        console.log('body:', body);
-        console.log('error:', error);
-        console.log('statusCode:', response && response.statusCode);
+        if (response && response.statusCode === 200) {
+            console.log(body);
+            return body;
+        }
+        if (error) throw error;
     },
 });
 

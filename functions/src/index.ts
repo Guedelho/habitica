@@ -7,34 +7,38 @@ import * as request from 'request';
 const config = functions.config();
 const { uri, user, key } = config.api;
 
-export const scheduledFunctionCrontab = functions.pubsub.schedule('0 0 * * *')
-    .timeZone('US/Central')
-    .onRun(() => {
-        const baseRequest = request.defaults({
-            baseUrl: uri,
-            method: 'POST',
-            headers: {
-                'x-api-user': user,
-                'x-api-key': key,
-                'Content-Type': 'application/json',
-            },
-            json: true,
-            callback: (error, response, body) => {
-                console.log('error:', error);
-                console.log('statusCode:', response && response.statusCode);
-                console.log('body:', body);
-            },
-        });
-        setTodos(baseRequest);
-        deleteCompletedTodos(baseRequest);
-        return null;
+const baseRequest = request.defaults({
+    json: true,
+    baseUrl: uri,
+    headers: {
+        'x-api-key': key,
+        'x-api-user': user,
+        'Content-Type': 'application/json',
+    },
+    callback: (error, response, body) => {
+        console.log('body:', body);
+        console.log('error:', error);
+        console.log('statusCode:', response && response.statusCode);
+    },
 });
 
-const setTodos = (baseRequest: any) => {
-    const body = {
-        text: '',
-        type: 'todo',
-        priority: 2,
+export const scheduledFunctionCrontab = functions.pubsub
+    .schedule('0 0 * * *')
+    .timeZone('US/Central')
+    .onRun(() => {
+        setTodos();
+        deleteCompletedTodos();
+        deleteIncompletedTodos();
+        return null;
+    });
+
+const setTodos = () => {
+    const options = {
+        body: {
+            text: '',
+            type: 'todo',
+            priority: 2,
+        },
     };
 
     const todos = [
@@ -51,15 +55,34 @@ const setTodos = (baseRequest: any) => {
         'The 16:8 Intermittent Fasting Method',
     ];
 
-    todos.forEach((todo) => {
-        body.text = todo;
-        baseRequest('/tasks/user', { body });
+    todos.forEach(todo => {
+        options.body.text = todo;
+        baseRequest.post('/tasks/user', options);
     });
 };
 
-const deleteCompletedTodos = (baseRequest: any) => {
-    const body = {
-        data: [],
-    }
-    baseRequest('/tasks/clearCompletedTodos', { body });
+const deleteCompletedTodos = () => {
+    const options = {
+        body: {
+            data: [],
+        },
+    };
+    baseRequest.post('/tasks/clearCompletedTodos', options);
+};
+
+const deleteIncompletedTodos = () => {
+    const type = 'todos';
+
+    const callback = (error: any, response: any, body: any) => {
+        if (response && response.statusCode === 200) {
+            const todos = body.data;
+
+            todos.forEach((todo: any) => {
+                baseRequest.delete(`/tasks/${todo.id}`);
+            });
+            return null;
+        }
+        throw error;
+    };
+    baseRequest.get(`/tasks/user?type=${type}`, callback);
 };

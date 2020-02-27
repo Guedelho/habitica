@@ -42,14 +42,13 @@ const setTodos = async () => {
         'Break the Habit! The No Sugar Challenge',
     ];
     const todosDiff = _.difference(mainTodosList, fetchedTodosList);
-    const body = {
-        text: '',
-        type: 'todo',
-        priority: 2,
-    };
 
-    todosDiff.forEach(todo => {
-        body.text = todo;
+    todosDiff.forEach(text => {
+        const body = {
+            text,
+            type: 'todo',
+            priority: 2,
+        };
 
         baseRequest.post('/tasks/user', body).catch(callbackError);
     });

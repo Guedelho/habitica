@@ -1,90 +1,82 @@
+import * as _ from 'lodash';
+import * as axios from 'axios';
 import * as functions from 'firebase-functions';
-import * as request from 'request';
+
+const config = functions.config();
+const { url, user, key } = config.api;
 
 // Start writing Firebase Functions
 // https://firebase.google.com/docs/functions/typescript
 
-const config = functions.config();
-const { uri, user, key } = config.api;
-
-const baseRequest = request.defaults({
-    json: true,
-    baseUrl: uri,
+const baseRequest = axios.default.create({
+    baseURL: url,
     headers: {
         'x-api-key': key,
         'x-api-user': user,
-        'Content-Type': 'application/json',
-    },
-    callback: (error, response, body) => {
-        if (response && response.statusCode === 200) {
-            console.log(body);
-            return body;
-        }
-        if (error) throw error;
     },
 });
 
 export const scheduledFunctionCrontab = functions.pubsub
     .schedule('0 0 * * *')
     .timeZone('US/Central')
-    .onRun(() => {
-        setTodos();
+    .onRun(async () => {
         deleteCompletedTodos();
-        deleteIncompletedTodos();
+        setTodos().catch(callbackError);
         return null;
     });
 
-const setTodos = () => {
-    const options = {
-        body: {
-            text: '',
-            type: 'todo',
-            priority: 2,
-        },
-    };
-
-    const todos = [
+const setTodos = async () => {
+    const todos = await getTodos();
+    const fetchedTodosList = todos.map((todo: any) => todo.text);
+    const mainTodosList = [
+        'Read',
+        'Shower',
+        'Exercise',
+        'Deep Work',
         'Drink Water',
         'Make my Bed',
-        'Exercise',
-        'Shower',
+        'Learn & Study',
         'Brush my Teeth',
         'Eat a Great Breakfest',
-        'Break the Habit! The No Sugar Challenge',
-        'Deep Work',
-        'Learn & Study',
-        'Read',
         'The 16:8 Intermittent Fasting Method',
+        'Break the Habit! The No Sugar Challenge',
     ];
+    const todosDiff = _.difference(mainTodosList, fetchedTodosList);
+    const body = {
+        text: '',
+        type: 'todo',
+        priority: 2,
+    };
 
-    todos.forEach(todo => {
-        options.body.text = todo;
-        baseRequest.post('/tasks/user', options);
+    todosDiff.forEach(todo => {
+        body.text = todo;
+
+        baseRequest.post('/tasks/user', body).catch(callbackError);
     });
+
+    return null;
 };
 
 const deleteCompletedTodos = () => {
-    const options = {
-        body: {
-            data: [],
-        },
+    const body = {
+        data: [],
     };
-    baseRequest.post('/tasks/clearCompletedTodos', options);
+
+    baseRequest.post('/tasks/clearCompletedTodos', body).catch(callbackError);
 };
 
-const deleteIncompletedTodos = () => {
+const getTodos = async (): Promise<any> => {
     const type = 'todos';
+    let todos = [];
 
-    const callback = (error: any, response: any, body: any) => {
-        if (response && response.statusCode === 200) {
-            const todos = body.data;
+    try {
+        const response = await baseRequest.get(`/tasks/user?type=${type}`);
+        todos = response.data.data;
+    } catch (error) {
+        console.error(error);
+    }
 
-            todos.forEach((todo: any) => {
-                baseRequest.delete(`/tasks/${todo.id}`);
-            });
-            return null;
-        }
-        throw error;
-    };
-    baseRequest.get(`/tasks/user?type=${type}`, callback);
+    return todos;
 };
+
+const callbackError = (error: any) => console.error(error);

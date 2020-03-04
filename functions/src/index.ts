@@ -6,9 +6,9 @@ import * as functions from 'firebase-functions';
 // Start writing Firebase Functions
 // https://firebase.google.com/docs/functions/typescript
 
-const { url, user, key } = functions.config().api;
+const { url: baseURL, user, key } = functions.config().api;
 const baseRequest: axios.AxiosInstance = axios.default.create({
-    baseURL: url,
+    baseURL,
     headers: {
         'x-api-key': key,
         'x-api-user': user,
@@ -34,7 +34,7 @@ export const scheduledFunctionCrontabToRunEveryTwoHours = functions.pubsub
     .schedule('0 */2 * * *')
     .timeZone(timeZone)
     .onRun(async () => {
-        questController().catch(callbackError);
+        await questController();
         return null;
     });
 
@@ -42,7 +42,7 @@ export const scheduledFunctionCrontabToRunEveryDayAtMidnight = functions.pubsub
     .schedule('0 0 * * *')
     .timeZone(timeZone)
     .onRun(async () => {
-        setTodos().catch(callbackError);
+        await setTodos();
         return null;
     });
 
@@ -51,26 +51,40 @@ const setTodos = async () => {
     const fetchedTodosList = todos.map((todo: any) => todo.text);
     const todosDiff = _.difference(myTodosList, fetchedTodosList);
 
-    todosDiff.forEach(text => {
-        const body = {
+    const method = 'POST';
+    const name = 'setTodos';
+    const url = '/tasks/user';
+
+    todosDiff.forEach(async text => {
+        const data = {
             text,
             type: 'todo',
             priority: 2,
         };
 
-        baseRequest.post('/tasks/user', body).catch(callbackError);
+        await makeRequest({
+            url,
+            name,
+            data,
+            method,
+        });
     });
 };
 
 const getTodos = async (): Promise<any> => {
     let todos;
 
-    try {
-        const response = await baseRequest.get('/tasks/user?type=todos');
-        todos = response.data.data;
-    } catch (error) {
-        console.error(error);
-    }
+    const method = 'GET';
+    const name = 'getTodos';
+    const url = '/tasks/user?type=todos';
+    const callback = (response: any) => (todos = response.data.data);
+
+    await makeRequest({
+        url,
+        name,
+        method,
+        callback,
+    });
 
     return todos;
 };
@@ -78,12 +92,17 @@ const getTodos = async (): Promise<any> => {
 const getParty = async (): Promise<any> => {
     let party;
 
-    try {
-        const response = await baseRequest.get('/groups/party');
-        party = response.data.data;
-    } catch (error) {
-        console.error(error);
-    }
+    const method = 'GET';
+    const name = 'getParty';
+    const url = '/groups/party';
+    const callback = (response: any) => (party = response.data.data);
+
+    await makeRequest({
+        url,
+        name,
+        method,
+        callback,
+    });
 
     return party;
 };
@@ -91,12 +110,18 @@ const getParty = async (): Promise<any> => {
 const getMyQuests = async (): Promise<any> => {
     let myQuests;
 
-    try {
-        const response = await baseRequest.get(`/members/${user}`);
-        myQuests = _.keys(response.data.data.achievements.quests);
-    } catch (error) {
-        console.error(error);
-    }
+    const method = 'GET';
+    const name = 'getMyQuests';
+    const url = `/members/${user}`;
+    const callback = (response: any) =>
+        (myQuests = _.keys(response.data.data.achievements.quests));
+
+    await makeRequest({
+        url,
+        name,
+        method,
+        callback,
+    });
 
     return myQuests;
 };
@@ -108,25 +133,41 @@ const setQuest = async (groupId: string) => {
     );
     const questKey = myQuests[randomNumber];
 
-    try {
-        await baseRequest.post(`/groups/${groupId}/quests/invite/${questKey}`);
-        lastQuestInviteMoment = moment().format('HH');
-    } catch (error) {
-        console.error(error);
-    }
+    const method = 'POST';
+    const name = 'setQuest';
+    const url = `/groups/${groupId}/quests/invite/${questKey}`;
+    const callback = () => (lastQuestInviteMoment = moment().format('HH'));
+
+    await makeRequest({
+        url,
+        name,
+        method,
+        callback,
+    });
 };
 
-const joinQuest = (groupId: string) => {
-    baseRequest.post(`/groups/${groupId}/quests/accept`).catch(callbackError);
+const acceptQuest = async (groupId: string) => {
+    const method = 'POST';
+    const name = 'acceptQuest';
+    const url = `/groups/${groupId}/quests/accept`;
+
+    await makeRequest({
+        url,
+        name,
+        method,
+    });
 };
 
 const forceStartQuest = async (groupId: string) => {
-    try {
-        await baseRequest.post(`/groups/${groupId}/quests/force-start`);
-        lastQuestInviteMoment = '';
-    } catch (error) {
-        console.error(error);
-    }
+    const method = 'POST';
+    const name = 'forceStartQuest';
+    const url = `/groups/${groupId}/quests/force-start`;
+
+    await makeRequest({
+        url,
+        name,
+        method,
+    });
 };
 
 const questController = async () => {
@@ -140,14 +181,22 @@ const questController = async () => {
                     .subtract(12, 'hours')
                     .format('HH');
             if (hasPassTwelveHours) {
-                forceStartQuest(id).catch(callbackError);
+                await forceStartQuest(id);
             }
         } else if (!quest.members[user]) {
-            joinQuest(id);
+            await acceptQuest(id);
         }
     } else {
-        setQuest(id).catch(callbackError);
+        await setQuest(id);
     }
 };
 
-const callbackError = (error: any) => console.error(error);
+const makeRequest = async ({ url, name, data, method, callback }: any = {}) => {
+    try {
+        const response = await baseRequest(url, { data, method });
+        callback && callback(response);
+        console.log(name);
+    } catch (error) {
+        console.error(error);
+    }
+};

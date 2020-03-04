@@ -112,19 +112,25 @@ const setQuest = async (groupId: string) => {
     );
     const questKey = myQuests[randomNumber];
 
-    lastQuestInviteMoment = moment().format('HH');
-    baseRequest.post(`/groups/${groupId}/quests/invite/${questKey}`).catch(callbackError);
+    try {
+        await baseRequest.post(`/groups/${groupId}/quests/invite/${questKey}`);
+        lastQuestInviteMoment = moment().format('HH');
+    } catch (error) {
+        console.error(error);
+    }
 };
 
 const joinQuest = (groupId: string) => {
     baseRequest.post(`/groups/${groupId}/quests/accept`).catch(callbackError);
 };
 
-const forceStartQuest = (groupId: string) => {
-    lastQuestInviteMoment = '';
-    baseRequest
-        .post(`/groups/${groupId}/quests/force-start`)
-        .catch(callbackError);
+const forceStartQuest = async (groupId: string) => {
+    try {
+        await baseRequest.post(`/groups/${groupId}/quests/force-start`);
+        lastQuestInviteMoment = '';
+    } catch (error) {
+        console.error(error);
+    }
 };
 
 const questController = async () => {
@@ -138,7 +144,7 @@ const questController = async () => {
                     .subtract(12, 'hours')
                     .format('HH');
             if (hasPassTwelveHours) {
-                forceStartQuest(id);
+                forceStartQuest(id).catch(callbackError);
             }
         } else if (!quest.members[user]) {
             joinQuest(id);

@@ -20,7 +20,7 @@ const baseRequest = axios.default.create({
 const timeZone: string = 'US/Central';
 let lastQuestInviteMoment: string = '';
 
-export const scheduledFunctionCrontabToRunEveryHour = functions.pubsub
+export const scheduledFunctionCrontabToRunEveryTwoHours = functions.pubsub
     .schedule('0 */2 * * *')
     .timeZone(timeZone)
     .onRun(async () => {
@@ -63,8 +63,6 @@ const setTodos = async () => {
 
         baseRequest.post('/tasks/user', body).catch(callbackError);
     });
-
-    return null;
 };
 
 const getTodos = async (): Promise<any> => {
@@ -114,12 +112,8 @@ const setQuest = async (groupId: string) => {
     );
     const questKey = myQuests[randomNumber];
 
-    try {
-        await baseRequest.post(`/groups/${groupId}/quests/invite/${questKey}`);
-        lastQuestInviteMoment = moment().format('HH');
-    } catch (error) {
-        console.error(error);
-    }
+    lastQuestInviteMoment = moment().format('HH');
+    baseRequest.post(`/groups/${groupId}/quests/invite/${questKey}`).catch(callbackError);
 };
 
 const joinQuest = (groupId: string) => {
@@ -134,26 +128,23 @@ const forceStartQuest = (groupId: string) => {
 };
 
 const questController = async () => {
-    const { id: groupId, quest } = await getParty();
+    const { id, quest } = await getParty();
 
-    if (quest.leader === quest.user) {
-        const hasPassTwelveHours =
-            lastQuestInviteMoment ===
-            moment()
-                .subtract(12, 'hours')
-                .format('HH');
-        if (hasPassTwelveHours) {
-            forceStartQuest(groupId);
-        }
-        return;
-    }
-
-    if (quest.key) {
-        if (!quest.active && !quest.members[user]) {
-            joinQuest(groupId);
+    if (quest.key && !quest.active) {
+        if (quest.leader === quest.user) {
+            const hasPassTwelveHours =
+                lastQuestInviteMoment ===
+                moment()
+                    .subtract(12, 'hours')
+                    .format('HH');
+            if (hasPassTwelveHours) {
+                forceStartQuest(id);
+            }
+        } else if (!quest.members[user]) {
+            joinQuest(id);
         }
     } else {
-        setQuest(groupId).catch(callbackError);
+        setQuest(id).catch(callbackError);
     }
 };
 

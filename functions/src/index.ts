@@ -3,12 +3,10 @@ import * as axios from 'axios';
 import * as moment from 'moment';
 import * as functions from 'firebase-functions';
 
-const config = functions.config();
-const { url, user, key } = config.api;
-
 // Start writing Firebase Functions
 // https://firebase.google.com/docs/functions/typescript
 
+const { url, user, key } = functions.config().api;
 const baseRequest: axios.AxiosInstance = axios.default.create({
     baseURL: url,
     headers: {
@@ -16,8 +14,20 @@ const baseRequest: axios.AxiosInstance = axios.default.create({
         'x-api-user': user,
     },
 });
-
 const timeZone: string = 'US/Central';
+const myTodosList: Array<string> = [
+    'Read',
+    'Shower',
+    'Exercise',
+    'Deep Work',
+    'Drink Water',
+    'Make my Bed',
+    'Learn & Study',
+    'Brush my Teeth',
+    'Eat a Great Breakfest',
+    'The 16:8 Intermittent Fasting Method',
+    'Break the Habit! The No Sugar Challenge',
+];
 let lastQuestInviteMoment: string = '';
 
 export const scheduledFunctionCrontabToRunEveryTwoHours = functions.pubsub
@@ -39,20 +49,7 @@ export const scheduledFunctionCrontabToRunEveryDayAtMidnight = functions.pubsub
 const setTodos = async () => {
     const todos = await getTodos();
     const fetchedTodosList = todos.map((todo: any) => todo.text);
-    const mainTodosList = [
-        'Read',
-        'Shower',
-        'Exercise',
-        'Deep Work',
-        'Drink Water',
-        'Make my Bed',
-        'Learn & Study',
-        'Brush my Teeth',
-        'Eat a Great Breakfest',
-        'The 16:8 Intermittent Fasting Method',
-        'Break the Habit! The No Sugar Challenge',
-    ];
-    const todosDiff = _.difference(mainTodosList, fetchedTodosList);
+    const todosDiff = _.difference(myTodosList, fetchedTodosList);
 
     todosDiff.forEach(text => {
         const body = {
@@ -66,11 +63,10 @@ const setTodos = async () => {
 };
 
 const getTodos = async (): Promise<any> => {
-    const type = 'todos';
     let todos;
 
     try {
-        const response = await baseRequest.get(`/tasks/user?type=${type}`);
+        const response = await baseRequest.get('/tasks/user?type=todos');
         todos = response.data.data;
     } catch (error) {
         console.error(error);

@@ -9,7 +9,7 @@ const { url, user, key } = config.api;
 // Start writing Firebase Functions
 // https://firebase.google.com/docs/functions/typescript
 
-const baseRequest = axios.default.create({
+const baseRequest: axios.AxiosInstance = axios.default.create({
     baseURL: url,
     headers: {
         'x-api-key': key,

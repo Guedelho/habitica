@@ -17,8 +17,8 @@ const baseRequest = axios.default.create({
     },
 });
 
-const timeZone = 'US/Central';
-let lastQuestInviteMoment: string;
+const timeZone: string = 'US/Central';
+let lastQuestInviteMoment: string = '';
 
 export const scheduledFunctionCrontabToRunEveryHour = functions.pubsub
     .schedule('0 */2 * * *')

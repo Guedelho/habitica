@@ -163,6 +163,6 @@ const makeRequest = async ({ url, name, data, method, callback }: any = {}) => {
         callback && callback(response);
         console.log(name);
     } catch (error) {
-        console.error(error);
+        console.error(name, error);
     }
 };

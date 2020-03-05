@@ -152,7 +152,7 @@ const questController = async () => {
         } else if (!quest.members[user]) {
             await acceptQuest(id);
         }
-    } else {
+    } else if (!quest.key) {
         await setQuest(id);
     }
 };

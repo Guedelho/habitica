@@ -51,10 +51,6 @@ const setTodos = async () => {
     const fetchedTodosList = todos.map((todo: any) => todo.text);
     const todosDiff = _.difference(myTodosList, fetchedTodosList);
 
-    const method = 'POST';
-    const name = 'setTodos';
-    const url = '/tasks/user';
-
     todosDiff.forEach(async text => {
         const data = {
             text,
@@ -63,10 +59,10 @@ const setTodos = async () => {
         };
 
         await makeRequest({
-            url,
-            name,
             data,
-            method,
+            method: 'POST',
+            name: 'setTodos',
+            url: '/tasks/user',
         });
     });
 };
@@ -74,16 +70,11 @@ const setTodos = async () => {
 const getTodos = async (): Promise<any> => {
     let todos;
 
-    const method = 'GET';
-    const name = 'getTodos';
-    const url = '/tasks/user?type=todos';
-    const callback = (response: any) => (todos = response.data.data);
-
     await makeRequest({
-        url,
-        name,
-        method,
-        callback,
+        method: 'GET',
+        name: 'getTodos',
+        url: '/tasks/user?type=todos',
+        callback: (response: any) => (todos = response.data.data),
     });
 
     return todos;
@@ -92,16 +83,11 @@ const getTodos = async (): Promise<any> => {
 const getParty = async (): Promise<any> => {
     let party;
 
-    const method = 'GET';
-    const name = 'getParty';
-    const url = '/groups/party';
-    const callback = (response: any) => (party = response.data.data);
-
     await makeRequest({
-        url,
-        name,
-        method,
-        callback,
+        method: 'GET',
+        name: 'getParty',
+        url: '/groups/party',
+        callback: (response: any) => (party = response.data.data),
     });
 
     return party;
@@ -110,17 +96,12 @@ const getParty = async (): Promise<any> => {
 const getMyQuests = async (): Promise<any> => {
     let myQuests;
 
-    const method = 'GET';
-    const name = 'getMyQuests';
-    const url = `/members/${user}`;
-    const callback = (response: any) =>
-        (myQuests = _.keys(response.data.data.achievements.quests));
-
     await makeRequest({
-        url,
-        name,
-        method,
-        callback,
+        method: 'GET',
+        name: 'getMyQuests',
+        url: `/members/${user}`,
+        callback: (response: any) =>
+            (myQuests = _.keys(response.data.data.achievements.quests)),
     });
 
     return myQuests;
@@ -133,42 +114,27 @@ const setQuest = async (groupId: string) => {
     );
     const questKey = myQuests[randomNumber];
 
-    const method = 'POST';
-    const name = 'setQuest';
-    const url = `/groups/${groupId}/quests/invite/${questKey}`;
-    const callback = () => (lastQuestInviteMoment = moment().format('HH'));
-
     await makeRequest({
-        url,
-        name,
-        method,
-        callback,
+        url: 'POST',
+        name: 'setQuest',
+        method: `/groups/${groupId}/quests/invite/${questKey}`,
+        callback: () => (lastQuestInviteMoment = moment().format('HH')),
     });
 };
 
-const acceptQuest = async (groupId: string) => {
-    const method = 'POST';
-    const name = 'acceptQuest';
-    const url = `/groups/${groupId}/quests/accept`;
-
-    await makeRequest({
-        url,
-        name,
-        method,
+const acceptQuest = async (groupId: string) =>
+    makeRequest({
+        method: 'POST',
+        name: 'acceptQuest',
+        url: `/groups/${groupId}/quests/accept`,
     });
-};
 
-const forceStartQuest = async (groupId: string) => {
-    const method = 'POST';
-    const name = 'forceStartQuest';
-    const url = `/groups/${groupId}/quests/force-start`;
-
+const forceStartQuest = async (groupId: string) =>
     await makeRequest({
-        url,
-        name,
-        method,
+        method: 'POST',
+        name: 'forceStartQuest',
+        url: `/groups/${groupId}/quests/force-start`,
     });
-};
 
 const questController = async () => {
     const { id, quest } = await getParty();

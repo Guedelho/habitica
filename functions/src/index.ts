@@ -51,61 +51,48 @@ const setTodos = async () => {
     const fetchedTodosList = todos.map((todo: any) => todo.text);
     const todosDiff = _.difference(myTodosList, fetchedTodosList);
 
-    todosDiff.forEach(async text => {
-        const data = {
-            text,
-            type: 'todo',
-            priority: 2,
-        };
-
-        await makeRequest({
-            data,
+    todosDiff.forEach(async text =>
+        makeRequest({
+            data: {
+                text,
+                type: 'todo',
+                priority: 2,
+            },
             method: 'POST',
-            name: 'setTodos',
             url: '/tasks/user',
-        });
-    });
+            callback: async (response: any) =>
+                castBrutalSmash(response.data.data.id),
+        })
+    );
 };
 
-const getTodos = async (): Promise<any> => {
-    let todos;
-
-    await makeRequest({
+const getTodos = async (): Promise<any> =>
+    makeRequest({
         method: 'GET',
-        name: 'getTodos',
         url: '/tasks/user?type=todos',
-        callback: (response: any) => (todos = response.data.data),
+        callback: (response: any) => response.data.data,
     });
 
-    return todos;
-};
-
-const getParty = async (): Promise<any> => {
-    let party;
-
-    await makeRequest({
+const getParty = async (): Promise<any> =>
+    makeRequest({
         method: 'GET',
-        name: 'getParty',
         url: '/groups/party',
-        callback: (response: any) => (party = response.data.data),
+        callback: (response: any) => response.data.data,
     });
 
-    return party;
-};
-
-const getMyQuests = async (): Promise<any> => {
-    let myQuests;
-
-    await makeRequest({
+const getMyQuests = async (): Promise<any> =>
+    makeRequest({
         method: 'GET',
-        name: 'getMyQuests',
         url: `/members/${user}`,
         callback: (response: any) =>
-            (myQuests = _.keys(response.data.data.achievements.quests)),
+            _.keys(response.data.data.achievements.quests),
     });
 
-    return myQuests;
-};
+const castBrutalSmash = async (targetId: string) =>
+    makeRequest({
+        method: 'POST',
+        url: `/user/class/cast/smash?targetId=${targetId}`,
+    });
 
 const setQuest = async (groupId: string) => {
     const myQuests = await getMyQuests();
@@ -116,7 +103,6 @@ const setQuest = async (groupId: string) => {
 
     await makeRequest({
         url: 'POST',
-        name: 'setQuest',
         method: `/groups/${groupId}/quests/invite/${questKey}`,
         callback: () => (lastQuestInviteMoment = moment().format('HH')),
     });
@@ -125,14 +111,12 @@ const setQuest = async (groupId: string) => {
 const acceptQuest = async (groupId: string) =>
     makeRequest({
         method: 'POST',
-        name: 'acceptQuest',
         url: `/groups/${groupId}/quests/accept`,
     });
 
 const forceStartQuest = async (groupId: string) =>
-    await makeRequest({
+    makeRequest({
         method: 'POST',
-        name: 'forceStartQuest',
         url: `/groups/${groupId}/quests/force-start`,
     });
 
@@ -157,12 +141,11 @@ const questController = async () => {
     }
 };
 
-const makeRequest = async ({ url, name, data, method, callback }: any = {}) => {
-    try {
-        const response = await baseRequest(url, { data, method });
-        callback && callback(response);
-        console.log(name);
-    } catch (error) {
-        console.error(name, error);
-    }
-};
+const makeRequest = ({ url, data, method, callback }: any = {}) =>
+    baseRequest(url, { data, method })
+        .then(callback)
+        .catch(error => console.error(error));
+
+// exports.test = functions.https.onRequest(async (request, response) => {
+//     setTodos();
+// });

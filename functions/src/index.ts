@@ -85,7 +85,7 @@ const getMyQuests = async (): Promise<any> =>
         method: 'GET',
         url: `/members/${user}`,
         callback: (response: any) =>
-            _.keys(response.data.data.achievements.quests),
+            _.keys(_.pickBy(response.data.data.items.quests)),
     });
 
 const castBrutalSmash = async (targetId: string) =>
@@ -96,14 +96,11 @@ const castBrutalSmash = async (targetId: string) =>
 
 const setQuest = async (groupId: string) => {
     const myQuests = await getMyQuests();
-    const randomNumber = Math.floor(
-        Math.random() * Math.floor(myQuests.length - 1)
-    );
-    const questKey = myQuests[randomNumber];
+    const questKey = myQuests[_.random(0, myQuests.length - 1)];
 
     await makeRequest({
-        url: 'POST',
-        method: `/groups/${groupId}/quests/invite/${questKey}`,
+        method: 'POST',
+        url: `/groups/${groupId}/quests/invite/${questKey}`,
         callback: () => (lastQuestInviteMoment = moment().format('HH')),
     });
 };
@@ -123,29 +120,30 @@ const forceStartQuest = async (groupId: string) =>
 const questController = async () => {
     const { id, quest } = await getParty();
 
-    if (quest.key && !quest.active) {
-        if (quest.leader === quest.user) {
-            const hasPassTwelveHours =
-                lastQuestInviteMoment ===
-                moment()
-                    .subtract(12, 'hours')
-                    .format('HH');
-            if (hasPassTwelveHours) {
-                await forceStartQuest(id);
+    if (quest.key) {
+        if (!quest.active) {
+            if (quest.leader === user) {
+                const hasPassTwelveHours =
+                    lastQuestInviteMoment ===
+                    moment()
+                        .subtract(12, 'hours')
+                        .format('HH');
+                if (hasPassTwelveHours) {
+                    await forceStartQuest(id);
+                }
+            } else if (!quest.members[user]) {
+                await acceptQuest(id);
             }
-        } else if (!quest.members[user]) {
-            await acceptQuest(id);
         }
-    } else if (!quest.key) {
+    } else {
         await setQuest(id);
     }
 };
 
 const makeRequest = ({ url, data, method, callback }: any = {}) =>
-    baseRequest(url, { data, method })
+    baseRequest({ url, data, method })
         .then(callback)
         .catch(error => console.error(error));
 
 // exports.test = functions.https.onRequest(async (request, response) => {
-//     setTodos();
 // });

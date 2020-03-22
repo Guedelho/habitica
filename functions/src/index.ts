@@ -166,7 +166,7 @@ const questController = async () => {
     }
 };
 
-const makeRequest = ({ url, data, method, callback }: any = {}) =>
+const makeRequest = ({ url, data, name, method, callback }: any = {}) =>
     baseRequest({ url, data, method })
         .then((response: any) => {
             console.log(name);

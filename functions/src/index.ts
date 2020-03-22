@@ -126,42 +126,44 @@ const forceStartQuest = async (groupId: string) =>
     });
 
 const questController = async () => {
+    console.log('Quest controller started...');
+    console.log('Fetching id and quest...');
     const { id, quest } = await getParty();
 
-    if (id && quest) {
-        if (!quest.key) {
-            console.log("There's no Quest set.");
-            return setQuest(id);
-        }
-        console.log("There's a Quest set.");
-        if (!quest.active) {
-            console.log('The Quest is inactive.');
-            if (quest.leader === user) {
-                console.log("I'm the Quest leader.");
-                const hasPassTwelveHours =
-                    lastQuestInviteMoment ===
-                    moment()
-                        .subtract(12, 'hours')
-                        .format('HH');
-                if (hasPassTwelveHours) {
-                    console.log("It's been 12 hours since I set a Quest.");
-                    return forceStartQuest(id);
-                }
-                console.log('12 hours have not passed. No action needed.');
-                return null;
-            }
-            if (!quest.members[user]) {
-                console.log("I didn't accepted the Quest.");
-                return acceptQuest(id);
-            }
-            console.log('I already accepted the Quest.');
-            return null;
-        }
-        console.log('The Quest is active. No action needed.');
+    if (!id || !quest) {
+        console.log("Couldn't fetch id or quest.");
         return null;
     }
-    console.log("Couldn't fetch id and quest values.");
-    return null;
+
+    if (!quest.key) {
+        console.log("There's no Quest set.");
+        return setQuest(id);
+    }
+
+    if (!quest.active) {
+        console.log('The Quest is inactive.');
+        if (quest.leader === user) {
+            console.log("I'm the Quest leader.");
+            const hasPassTwelveHours =
+                lastQuestInviteMoment ===
+                moment()
+                    .subtract(12, 'hours')
+                    .format('HH');
+            if (hasPassTwelveHours) {
+                console.log("It's been 12 hours since I set a Quest.");
+                return forceStartQuest(id);
+            } else {
+                console.log('12 hours have not passed. No action needed.');
+            }
+        } else if (!quest.members[user]) {
+            console.log("I didn't accepted the Quest.");
+            return acceptQuest(id);
+        } else {
+            console.log('I already accepted the Quest. No action needed.');
+        }
+    } else {
+        console.log('The Quest is active. No action needed.');
+    }
 };
 
 const makeRequest = ({ url, data, method, callback }: any = {}) =>

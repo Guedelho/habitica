@@ -28,7 +28,7 @@ const myTodosList: Array<string> = [
     'The 16:8 Intermittent Fasting Method',
     'Break the Habit! The No Sugar Challenge',
 ];
-let lastQuestInviteMoment: string = '';
+let momentLastQuestInvite: string = '';
 
 export const scheduledFunctionCrontabToRunEveryHour = functions.pubsub
     .schedule('0 */1 * * *')
@@ -107,7 +107,7 @@ const setQuest = async (groupId: string) => {
         method: 'POST',
         name: 'setQuest',
         url: `/groups/${groupId}/quests/invite/${questKey}`,
-        callback: () => (lastQuestInviteMoment = moment().format('HH')),
+        callback: () => (momentLastQuestInvite = moment().format('HH')),
     });
 };
 
@@ -144,12 +144,11 @@ const questController = async () => {
         console.log('The Quest is inactive.');
         if (quest.leader === user) {
             console.log("I'm the Quest leader.");
-            const hasPassTwelveHours =
-                lastQuestInviteMoment ===
-                moment()
-                    .subtract(12, 'hours')
-                    .format('HH');
-            if (hasPassTwelveHours) {
+            const momentTwelveHoursAgo = moment()
+                .subtract(12, 'hours')
+                .format('HH');
+            console.log('I set the Quest at ', momentLastQuestInvite);
+            if (momentLastQuestInvite === momentTwelveHoursAgo) {
                 console.log("It's been 12 hours since I set a Quest.");
                 return forceStartQuest(id);
             } else {

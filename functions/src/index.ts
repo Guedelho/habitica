@@ -128,12 +128,12 @@ const questController = async () => {
     const { id, quest } = await getParty();
 
     if (!id || !quest) {
-        console.log("Couldn't party.");
+        console.log("Couldn't fetch party.");
         return null;
     }
 
     if (!quest.key) {
-        console.log("There's no Quest set.");
+        console.log("There's no Quest set. Setting Quest...");
         return setQuest(id);
     }
 
@@ -146,13 +146,15 @@ const questController = async () => {
                 .format('HH');
             console.log('I set the Quest at ', momentLastQuestInvite);
             if (momentLastQuestInvite === momentTwelveHoursAgo) {
-                console.log("It's been 12 hours since I set a Quest.");
+                console.log(
+                    "It's been 12 hours since I set a Quest. Forcing start Quest..."
+                );
                 return forceStartQuest(id);
             } else {
                 console.log('12 hours have not passed. No action needed.');
             }
         } else if (!quest.members[api.user]) {
-            console.log("I didn't accepted the Quest.");
+            console.log("I didn't accepted the Quest. Accepting Quest...");
             return acceptQuest(id);
         } else {
             console.log('I already accepted the Quest. No action needed.');
@@ -165,10 +167,10 @@ const questController = async () => {
 const makeRequest = ({ url, data, method }: any = {}) =>
     baseRequest({ url, data, method })
         .then((response: any) => {
-            console.log(method, url, data);
+            console.log(method, url);
             return _.get(response, 'data.data');
         })
-        .catch(error => console.error(method, url, data, error));
+        .catch(error => console.error(method, url, error));
 
 // exports.test = functions.https.onRequest(async (request, response) => {
 // });

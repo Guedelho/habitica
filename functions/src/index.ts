@@ -59,6 +59,7 @@ const setTodos = async () => {
                 priority: 2,
             },
             method: 'POST',
+            name: 'setTodos',
             url: '/tasks/user',
             callback: async (response: any) =>
                 castBrutalSmash(response.data.data.id),
@@ -69,6 +70,7 @@ const setTodos = async () => {
 const getTodos = async (): Promise<any> =>
     makeRequest({
         method: 'GET',
+        name: 'getTodos',
         url: '/tasks/user?type=todos',
         callback: (response: any) => response.data.data,
     });
@@ -76,6 +78,7 @@ const getTodos = async (): Promise<any> =>
 const getParty = async (): Promise<any> =>
     makeRequest({
         method: 'GET',
+        name: 'getParty',
         url: '/groups/party',
         callback: (response: any) => response.data.data,
     });
@@ -83,6 +86,7 @@ const getParty = async (): Promise<any> =>
 const getMyQuests = async (): Promise<any> =>
     makeRequest({
         method: 'GET',
+        name: 'getMyQuests',
         url: `/members/${user}`,
         callback: (response: any) =>
             _.keys(_.pickBy(response.data.data.items.quests)),
@@ -91,6 +95,7 @@ const getMyQuests = async (): Promise<any> =>
 const castBrutalSmash = async (targetId: string) =>
     makeRequest({
         method: 'POST',
+        name: 'castBrutalSmash',
         url: `/user/class/cast/smash?targetId=${targetId}`,
     });
 
@@ -100,6 +105,7 @@ const setQuest = async (groupId: string) => {
 
     await makeRequest({
         method: 'POST',
+        name: 'setQuest',
         url: `/groups/${groupId}/quests/invite/${questKey}`,
         callback: () => (lastQuestInviteMoment = moment().format('HH')),
     });
@@ -108,42 +114,63 @@ const setQuest = async (groupId: string) => {
 const acceptQuest = async (groupId: string) =>
     makeRequest({
         method: 'POST',
+        name: 'acceptQuest',
         url: `/groups/${groupId}/quests/accept`,
     });
 
 const forceStartQuest = async (groupId: string) =>
     makeRequest({
         method: 'POST',
+        name: 'forceStartQuest',
         url: `/groups/${groupId}/quests/force-start`,
     });
 
 const questController = async () => {
     const { id, quest } = await getParty();
 
-    if (quest.key) {
+    if (id && quest) {
+        if (!quest.key) {
+            console.log("There's no Quest set.");
+            return setQuest(id);
+        }
+        console.log("There's a Quest set.");
         if (!quest.active) {
+            console.log('The Quest is inactive.');
             if (quest.leader === user) {
+                console.log("I'm the Quest leader.");
                 const hasPassTwelveHours =
                     lastQuestInviteMoment ===
                     moment()
                         .subtract(12, 'hours')
                         .format('HH');
                 if (hasPassTwelveHours) {
-                    await forceStartQuest(id);
+                    console.log("It's been 12 hours since I set a Quest.");
+                    return forceStartQuest(id);
                 }
-            } else if (!quest.members[user]) {
-                await acceptQuest(id);
+                console.log('12 hours have not passed. No action needed.');
+                return null;
             }
+            if (!quest.members[user]) {
+                console.log("I didn't accepted the Quest.");
+                return acceptQuest(id);
+            }
+            console.log('I already accepted the Quest.');
+            return null;
         }
-    } else {
-        await setQuest(id);
+        console.log('The Quest is active. No action needed.');
+        return null;
     }
+    console.log("Couldn't fetch id and quest values.");
+    return null;
 };
 
 const makeRequest = ({ url, data, method, callback }: any = {}) =>
     baseRequest({ url, data, method })
-        .then(callback)
-        .catch(error => console.error(error));
+        .then((response: any) => {
+            console.log(name);
+            return callback(response);
+        })
+        .catch(error => console.error(name, error));
 
 // exports.test = functions.https.onRequest(async (request, response) => {
 // });

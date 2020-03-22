@@ -6,15 +6,15 @@ import * as functions from 'firebase-functions';
 // Start writing Firebase Functions
 // https://firebase.google.com/docs/functions/typescript
 
-const { url: baseURL, user, key } = functions.config().api;
+const { api } = functions.config();
 const baseRequest: axios.AxiosInstance = axios.default.create({
-    baseURL,
+    baseURL: api.url,
     headers: {
-        'x-api-key': key,
-        'x-api-user': user,
+        'x-api-key': api.key,
+        'x-api-user': api.user,
     },
 });
-const timeZone: string = 'US/Central';
+const timeZone: string = 'America/Sao_Paulo';
 const myTodosList: Array<string> = [
     'Read',
     'Shower',
@@ -43,95 +43,92 @@ export const scheduledFunctionCrontabToRunEveryDayAtMidnight = functions.pubsub
     .timeZone(timeZone)
     .onRun(async () => {
         await setTodos();
+        await castBrutalSmashOnTasks();
         return null;
     });
 
 const setTodos = async () => {
-    const todos = await getTodos();
+    const todos = await getTasks('todos');
     const fetchedTodosList = todos.map((todo: any) => todo.text);
     const todosDiff = _.difference(myTodosList, fetchedTodosList);
 
-    todosDiff.forEach(async text =>
-        makeRequest({
-            data: {
-                text,
-                type: 'todo',
-                priority: 2,
-            },
-            method: 'POST',
-            name: 'setTodos',
-            url: '/tasks/user',
-            callback: async (response: any) =>
-                castBrutalSmash(response.data.data.id),
-        })
+    todosDiff.forEach(
+        async text =>
+            await makeRequest({
+                data: {
+                    text,
+                    type: 'todo',
+                    priority: 2,
+                },
+                method: 'POST',
+                url: '/tasks/user',
+            })
     );
 };
 
-const getTodos = async (): Promise<any> =>
-    makeRequest({
-        method: 'GET',
-        name: 'getTodos',
-        url: '/tasks/user?type=todos',
-        callback: (response: any) => response.data.data,
-    });
+const getTasks = async (type: string): Promise<any> =>
+    makeRequest({ method: 'GET', url: `/tasks/user?type=${type}` });
 
 const getParty = async (): Promise<any> =>
-    makeRequest({
-        method: 'GET',
-        name: 'getParty',
-        url: '/groups/party',
-        callback: (response: any) => response.data.data,
-    });
+    makeRequest({ method: 'GET', url: '/groups/party' });
 
-const getMyQuests = async (): Promise<any> =>
-    makeRequest({
-        method: 'GET',
-        name: 'getMyQuests',
-        url: `/members/${user}`,
-        callback: (response: any) =>
-            _.keys(_.pickBy(response.data.data.items.quests)),
-    });
+const getMember = async (memberId: string): Promise<any> =>
+    makeRequest({ method: 'GET', url: `/members/${memberId}` });
 
-const castBrutalSmash = async (targetId: string) =>
-    makeRequest({
-        method: 'POST',
-        name: 'castBrutalSmash',
-        url: `/user/class/cast/smash?targetId=${targetId}`,
-    });
+const castBrutalSmashOnTasks = async () => {
+    const member = await getMember(api.user);
+    const todos = await getTasks('todos');
+    const habits = await getTasks('habits');
+    const dailys = await getTasks('dailys');
+
+    const spellManaCost = 10;
+    const tasks = [...todos, ...habits, ...dailys].filter((task: any) =>
+        _.isEmpty(task.challenge)
+    );
+
+    let mana = _.get(member, 'stats.mp');
+
+    while (mana >= spellManaCost) {
+        const targetId = tasks[_.random(0, tasks.length - 1)].id;
+        await makeRequest({
+            method: 'POST',
+            url: `/user/class/cast/smash?targetId=${targetId}`,
+        });
+        mana -= spellManaCost;
+    }
+};
 
 const setQuest = async (groupId: string) => {
-    const myQuests = await getMyQuests();
-    const questKey = myQuests[_.random(0, myQuests.length - 1)];
+    const member = await getMember(api.user);
+    const quests = _.keys(_.pickBy(_.get(member, 'items.quests')));
+    const questKey = quests[_.random(0, quests.length - 1)];
 
     await makeRequest({
         method: 'POST',
-        name: 'setQuest',
         url: `/groups/${groupId}/quests/invite/${questKey}`,
-        callback: () => (momentLastQuestInvite = moment().format('HH')),
     });
+    momentLastQuestInvite = moment().format('HH');
 };
 
 const acceptQuest = async (groupId: string) =>
     makeRequest({
         method: 'POST',
-        name: 'acceptQuest',
         url: `/groups/${groupId}/quests/accept`,
     });
 
 const forceStartQuest = async (groupId: string) =>
     makeRequest({
         method: 'POST',
-        name: 'forceStartQuest',
         url: `/groups/${groupId}/quests/force-start`,
     });
 
 const questController = async () => {
     console.log('Quest controller started...');
-    console.log('Fetching id and quest...');
+    console.log('Fetching party...');
     const { id, quest } = await getParty();
 
     if (!id || !quest) {
-        console.log("Couldn't fetch id or quest.");
+        console.log("Couldn't party.");
         return null;
     }
 
@@ -142,7 +139,7 @@ const questController = async () => {
 
     if (!quest.active) {
         console.log('The Quest is inactive.');
-        if (quest.leader === user) {
+        if (quest.leader === api.user) {
             console.log("I'm the Quest leader.");
             const momentTwelveHoursAgo = moment()
                 .subtract(12, 'hours')
@@ -154,7 +151,7 @@ const questController = async () => {
             } else {
                 console.log('12 hours have not passed. No action needed.');
             }
-        } else if (!quest.members[user]) {
+        } else if (!quest.members[api.user]) {
             console.log("I didn't accepted the Quest.");
             return acceptQuest(id);
         } else {
@@ -165,13 +162,13 @@ const questController = async () => {
     }
 };
 
-const makeRequest = ({ url, data, name, method, callback }: any = {}) =>
+const makeRequest = ({ url, data, method }: any = {}) =>
     baseRequest({ url, data, method })
         .then((response: any) => {
-            console.log(name);
-            return callback(response);
+            console.log(method, url, data);
+            return _.get(response, 'data.data');
         })
-        .catch(error => console.error(name, error));
+        .catch(error => console.error(method, url, data, error));
 
 // exports.test = functions.https.onRequest(async (request, response) => {
 // });

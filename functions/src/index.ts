@@ -52,28 +52,40 @@ const setTodos = async () => {
     const fetchedTodosList = todos.map((todo: any) => todo.text);
     const todosDiff = _.difference(myTodosList, fetchedTodosList);
 
-    todosDiff.forEach(
-        async text =>
-            await makeRequest({
-                data: {
-                    text,
-                    type: 'todo',
-                    priority: 2,
-                },
-                method: 'POST',
-                url: '/tasks/user',
-            })
-    );
+    todosDiff.forEach(async text => {
+        await makeRequest({
+            log: 'Setting Todos...',
+            data: {
+                text,
+                type: 'todo',
+                priority: 2,
+            },
+            method: 'POST',
+            url: '/tasks/user',
+        });
+    });
 };
 
 const getTasks = async (type: string): Promise<any> =>
-    makeRequest({ method: 'GET', url: `/tasks/user?type=${type}` });
+    makeRequest({
+        log: 'Getting Tasks...',
+        method: 'GET',
+        url: `/tasks/user?type=${type}`,
+    });
 
 const getParty = async (): Promise<any> =>
-    makeRequest({ method: 'GET', url: '/groups/party' });
+    makeRequest({
+        log: 'Getting Party...',
+        method: 'GET',
+        url: '/groups/party',
+    });
 
 const getMember = async (memberId: string): Promise<any> =>
-    makeRequest({ method: 'GET', url: `/members/${memberId}` });
+    makeRequest({
+        log: 'Getting Member...',
+        method: 'GET',
+        url: `/members/${memberId}`,
+    });
 
 const castBrutalSmashOnTasks = async () => {
     const member = await getMember(api.user);
@@ -91,6 +103,7 @@ const castBrutalSmashOnTasks = async () => {
     while (mana >= spellManaCost) {
         const targetId = tasks[_.random(0, tasks.length - 1)].id;
         await makeRequest({
+            log: 'Casting Brutal Smash...',
             method: 'POST',
             url: `/user/class/cast/smash?targetId=${targetId}`,
         });
@@ -104,6 +117,7 @@ const setQuest = async (groupId: string) => {
     const questKey = quests[_.random(0, quests.length - 1)];
 
     await makeRequest({
+        log: 'Setting Quest...',
         method: 'POST',
         url: `/groups/${groupId}/quests/invite/${questKey}`,
     });
@@ -112,19 +126,20 @@ const setQuest = async (groupId: string) => {
 
 const acceptQuest = async (groupId: string) =>
     makeRequest({
+        log: 'Accepting Quest...',
         method: 'POST',
         url: `/groups/${groupId}/quests/accept`,
     });
 
 const forceStartQuest = async (groupId: string) =>
     makeRequest({
+        log: 'Forcing Start Quest...',
         method: 'POST',
         url: `/groups/${groupId}/quests/force-start`,
     });
 
 const questController = async () => {
     console.log('Quest controller started...');
-    console.log('Fetching party...');
     const { id, quest } = await getParty();
 
     if (!id || !quest) {
@@ -133,7 +148,7 @@ const questController = async () => {
     }
 
     if (!quest.key) {
-        console.log("There's no Quest set. Setting Quest...");
+        console.log("There's no Quest set.");
         return setQuest(id);
     }
 
@@ -146,15 +161,13 @@ const questController = async () => {
                 .format('HH');
             console.log('I set the Quest at ', momentLastQuestInvite);
             if (momentLastQuestInvite === momentTwelveHoursAgo) {
-                console.log(
-                    "It's been 12 hours since I set a Quest. Forcing start Quest..."
-                );
+                console.log("It's been 12 hours since I set a Quest.");
                 return forceStartQuest(id);
             } else {
                 console.log('12 hours have not passed. No action needed.');
             }
         } else if (!quest.members[api.user]) {
-            console.log("I didn't accepted the Quest. Accepting Quest...");
+            console.log("I didn't accepted the Quest.");
             return acceptQuest(id);
         } else {
             console.log('I already accepted the Quest. No action needed.');
@@ -164,13 +177,13 @@ const questController = async () => {
     }
 };
 
-const makeRequest = ({ url, data, method }: any = {}) =>
+const makeRequest = ({ log, url, data, method }: any = {}) =>
     baseRequest({ url, data, method })
         .then((response: any) => {
-            console.log(method, url);
+            console.log(log, method, url);
             return _.get(response, 'data.data');
         })
-        .catch(error => console.error(method, url, error));
+        .catch(error => console.error(log, method, url, error));
 
 // exports.test = functions.https.onRequest(async (request, response) => {
 // });

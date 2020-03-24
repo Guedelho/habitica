@@ -49,21 +49,23 @@ export const scheduledFunctionCrontabToRunEveryDayAtMidnight = functions.pubsub
 
 const setTodos = async () => {
     const todos = await getTasks('todos');
-    const fetchedTodosList = todos.map((todo: any) => todo.text);
+    const fetchedTodosList = _.map(todos, 'text');
     const todosDiff = _.difference(myTodosList, fetchedTodosList);
 
-    todosDiff.forEach(async text => {
-        await makeRequest({
-            log: 'Setting Todos...',
-            data: {
-                text,
-                type: 'todo',
-                priority: 2,
-            },
-            method: 'POST',
-            url: '/tasks/user',
-        });
-    });
+    await Promise.all(
+        _.map(todosDiff, async text =>
+            await makeRequest({
+                log: 'Setting Todos...',
+                data: {
+                    text,
+                    type: 'todo',
+                    priority: 2,
+                },
+                method: 'POST',
+                url: '/tasks/user',
+            })
+        )
+    );
 };
 
 const getTasks = async (type: string): Promise<any> =>
@@ -90,18 +92,17 @@ const getMember = async (memberId: string): Promise<any> =>
 const castBrutalSmashOnTasks = async () => {
     const member = await getMember(api.user);
     const todos = await getTasks('todos');
-    const habits = await getTasks('habits');
     const dailys = await getTasks('dailys');
 
     const spellManaCost = 10;
-    const tasks = [...todos, ...habits, ...dailys].filter((task: any) =>
-        _.isEmpty(task.challenge)
-    );
+    const tasks = [...todos, ...dailys];
+    const filteredTasks = _.filter(tasks, (task: any) => _.isEmpty(task.challenge));
+    const tasksIds = _.map(filteredTasks, 'id');
 
     let mana = _.get(member, 'stats.mp');
 
-    while (mana >= spellManaCost) {
-        const targetId = tasks[_.random(0, tasks.length - 1)].id;
+    while (mana >= spellManaCost && tasksIds.length) {
+        const targetId = tasksIds.pop();
         await makeRequest({
             log: 'Casting Brutal Smash...',
             method: 'POST',
@@ -180,7 +181,7 @@ const questController = async () => {
 const makeRequest = ({ log, url, data, method }: any = {}) =>
     baseRequest({ url, data, method })
         .then((response: any) => {
-            console.log(log, method, url);
+            console.log(log, method, url, 'Success!');
             return _.get(response, 'data.data');
         })
         .catch(error => console.error(log, method, url, error));

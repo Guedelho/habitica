@@ -162,10 +162,10 @@ const questController = async () => {
                 .format('HH');
             console.log('I set the Quest at ', momentLastQuestInvite);
             if (momentLastQuestInvite === momentSixHoursAgo) {
-                console.log("It's been 12 hours since I set a Quest.");
+                console.log("It's been 6 hours since I set a Quest.");
                 return forceStartQuest(id);
             } else {
-                console.log('12 hours have not passed. No action needed.');
+                console.log('6 hours have not passed. No action needed.');
             }
         } else if (!quest.members[api.user]) {
             console.log("I didn't accepted the Quest.");

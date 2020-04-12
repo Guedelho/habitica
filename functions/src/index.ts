@@ -30,8 +30,8 @@ const myTodosList: Array<string> = [
 ];
 let momentLastQuestInvite: string = '';
 
-export const scheduledFunctionCrontabToRunEveryHour = functions.pubsub
-    .schedule('0 */1 * * *')
+export const scheduledFunctionCrontabToRunEveryTwoHours = functions.pubsub
+    .schedule('0 */2 * * *')
     .timeZone(timeZone)
     .onRun(async () => {
         await questController();

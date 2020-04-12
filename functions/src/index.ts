@@ -157,11 +157,11 @@ const questController = async () => {
         console.log('The Quest is inactive.');
         if (quest.leader === api.user) {
             console.log("I'm the Quest leader.");
-            const momentSixHoursAgo = moment()
-                .subtract(6, 'hours')
+            const momentHoursAgo = moment()
+                .subtract(8, 'hours')
                 .format('HH');
             console.log('I set the Quest at ', momentLastQuestInvite);
-            if (momentLastQuestInvite === momentSixHoursAgo) {
+            if (momentLastQuestInvite === momentHoursAgo) {
                 console.log("It's been 6 hours since I set a Quest.");
                 return forceStartQuest(id);
             } else {

@@ -1,2 +1,2 @@
 # habitica
-Habitica Api
+Habitica bot to set and accept quests

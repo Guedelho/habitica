@@ -30,13 +30,13 @@ const myTodosList: Array<string> = [
 ];
 let momentLastQuestInvite: string = '';
 
-export const scheduledFunctionCrontabToRunEveryTwoHours = functions.pubsub
-    .schedule('0 */2 * * *')
-    .timeZone(timeZone)
-    .onRun(async () => {
-        await questController();
-        return null;
-    });
+// export const scheduledFunctionCrontabToRunEveryTwoHours = functions.pubsub
+//     .schedule('0 */2 * * *')
+//     .timeZone(timeZone)
+//     .onRun(async () => {
+//         await questController();
+//         return null;
+//     });
 
 export const scheduledFunctionCrontabToRunEveryDayAtMidnight = functions.pubsub
     .schedule('0 0 * * *')
@@ -162,10 +162,10 @@ const questController = async () => {
                 .format('HH');
             console.log('I set the Quest at ', momentLastQuestInvite);
             if (momentLastQuestInvite === momentHoursAgo) {
-                console.log("It's been 6 hours since I set a Quest.");
+                console.log("It's been 8 hours since I set a Quest.");
                 return forceStartQuest(id);
             } else {
-                console.log('6 hours have not passed. No action needed.');
+                console.log('8 hours have not passed. No action needed.');
             }
         } else if (!quest.members[api.user]) {
             console.log("I didn't accepted the Quest.");

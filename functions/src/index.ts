@@ -1,6 +1,6 @@
 import * as _ from 'lodash';
 import * as axios from 'axios';
-// import * as moment from 'moment';
+import * as moment from 'moment';
 import * as functions from 'firebase-functions';
 
 // Start writing Firebase Functions
@@ -28,15 +28,15 @@ const myTodosList: Array<string> = [
     'The 16:8 Intermittent Fasting Method',
     'Break the Habit! The No Sugar Challenge',
 ];
-// let momentLastQuestInvite: string = '';
+let momentLastQuestInvite: string = '';
 
-// export const scheduledFunctionCrontabToRunEveryTwoHours = functions.pubsub
-//     .schedule('0 */2 * * *')
-//     .timeZone(timeZone)
-//     .onRun(async () => {
-//         await questController();
-//         return null;
-//     });
+export const scheduledFunctionCrontabToRunEveryFourHours = functions.pubsub
+    .schedule('0 */4 * * *')
+    .timeZone(timeZone)
+    .onRun(async () => {
+        await questController();
+        return null;
+    });
 
 export const scheduledFunctionCrontabToRunEveryDayAtMidnight = functions.pubsub
     .schedule('0 0 * * *')
@@ -75,12 +75,12 @@ const getTasks = async (type: string): Promise<any> =>
         url: `/tasks/user?type=${type}`,
     });
 
-// const getParty = async (): Promise<any> =>
-//     makeRequest({
-//         log: 'Getting Party...',
-//         method: 'GET',
-//         url: '/groups/party',
-//     });
+const getParty = async (): Promise<any> =>
+    makeRequest({
+        log: 'Getting Party...',
+        method: 'GET',
+        url: '/groups/party',
+    });
 
 const getMember = async (memberId: string): Promise<any> =>
     makeRequest({
@@ -112,71 +112,71 @@ const castBrutalSmashOnTasks = async () => {
     }
 };
 
-// const setQuest = async (groupId: string) => {
-//     const member = await getMember(api.user);
-//     const quests = _.keys(_.pickBy(_.get(member, 'items.quests')));
-//     const questKey = quests[_.random(0, quests.length - 1)];
+const setQuest = async (groupId: string) => {
+    const member = await getMember(api.user);
+    const quests = _.keys(_.pickBy(_.get(member, 'items.quests')));
+    const questKey = quests[_.random(0, quests.length - 1)];
 
-//     await makeRequest({
-//         log: 'Setting Quest...',
-//         method: 'POST',
-//         url: `/groups/${groupId}/quests/invite/${questKey}`,
-//     });
-//     momentLastQuestInvite = moment().format('HH');
-// };
+    await makeRequest({
+        log: 'Setting Quest...',
+        method: 'POST',
+        url: `/groups/${groupId}/quests/invite/${questKey}`,
+    });
+    momentLastQuestInvite = moment().format('HH');
+};
 
-// const acceptQuest = async (groupId: string) =>
-//     makeRequest({
-//         log: 'Accepting Quest...',
-//         method: 'POST',
-//         url: `/groups/${groupId}/quests/accept`,
-//     });
+const acceptQuest = async (groupId: string) =>
+    makeRequest({
+        log: 'Accepting Quest...',
+        method: 'POST',
+        url: `/groups/${groupId}/quests/accept`,
+    });
 
-// const forceStartQuest = async (groupId: string) =>
-//     makeRequest({
-//         log: 'Forcing Start Quest...',
-//         method: 'POST',
-//         url: `/groups/${groupId}/quests/force-start`,
-//     });
+const forceStartQuest = async (groupId: string) =>
+    makeRequest({
+        log: 'Forcing Start Quest...',
+        method: 'POST',
+        url: `/groups/${groupId}/quests/force-start`,
+    });
 
-// const questController = async () => {
-//     console.log('Quest controller started...');
-//     const { id, quest } = await getParty();
+const questController = async () => {
+    console.log('Quest controller started...');
+    const { id, quest } = await getParty();
 
-//     if (!id || !quest) {
-//         console.log("Couldn't fetch party.");
-//         return null;
-//     }
+    if (!id || !quest) {
+        console.log("Couldn't fetch party.");
+        return null;
+    }
 
-//     if (!quest.key) {
-//         console.log("There's no Quest set.");
-//         return setQuest(id);
-//     }
+    if (!quest.key) {
+        console.log("There's no Quest set.");
+        return setQuest(id);
+    }
 
-//     if (!quest.active) {
-//         console.log('The Quest is inactive.');
-//         if (quest.leader === api.user) {
-//             console.log("I'm the Quest leader.");
-//             const momentHoursAgo = moment()
-//                 .subtract(8, 'hours')
-//                 .format('HH');
-//             console.log('I set the Quest at ', momentLastQuestInvite);
-//             if (momentLastQuestInvite === momentHoursAgo) {
-//                 console.log("It's been 8 hours since I set a Quest.");
-//                 return forceStartQuest(id);
-//             } else {
-//                 console.log('8 hours have not passed. No action needed.');
-//             }
-//         } else if (!quest.members[api.user]) {
-//             console.log("I didn't accepted the Quest.");
-//             return acceptQuest(id);
-//         } else {
-//             console.log('I already accepted the Quest. No action needed.');
-//         }
-//     } else {
-//         console.log('The Quest is active. No action needed.');
-//     }
-// };
+    if (!quest.active) {
+        console.log('The Quest is inactive.');
+        if (quest.leader === api.user) {
+            console.log("I'm the Quest leader.");
+            const momentHoursAgo = moment()
+                .subtract(10, 'hours')
+                .format('HH');
+            console.log('I set the Quest at ', momentLastQuestInvite);
+            if (momentLastQuestInvite === momentHoursAgo) {
+                console.log("It's been 10 hours since I set a Quest.");
+                return forceStartQuest(id);
+            } else {
+                console.log('10 hours have not passed. No action needed.');
+            }
+        } else if (!quest.members[api.user]) {
+            console.log("I didn't accepted the Quest.");
+            return acceptQuest(id);
+        } else {
+            console.log('I already accepted the Quest. No action needed.');
+        }
+    } else {
+        console.log('The Quest is active. No action needed.');
+    }
+};
 
 const makeRequest = ({ log, url, data, method }: any = {}) =>
     baseRequest({ url, data, method })
